@@ -3,6 +3,7 @@ import asyncio
 from collections import deque
 from random import randint
 import base64
+import copy
 
 DEFAULT_USER = os.environ.get('DEFAULT_USER', 'guest')
 DEFAULT_PASSWORD = os.environ.get('DEFAULT_PASSWORD', 'guest')
@@ -113,7 +114,7 @@ class State:
         return self.base64encode_message_in_list_when_appliable(list(exchange['messages']))
 
     def base64encode_message_in_list_when_appliable(self, messages) -> list:
-        for i, message in enumerate(messages):
+        for i, message in enumerate(copy.deepcopy(messages)):
             try:
                 message.update({'body': message['body'].decode('utf-8')})
             except UnicodeDecodeError:
