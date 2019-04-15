@@ -172,6 +172,7 @@ class State:
         exchange_name,
         headers,
         message_data,
+        is_binary: bool = False,
     ):
         """Publish message to a worker without storing it."""
         if exchange_name not in self._exchanges:
@@ -209,7 +210,7 @@ class State:
 
                 consumer['protocol'].push_message(
                     headers,
-                    message_data,
+                    message_data.encode('utf8') if not is_binary else message_data,
                     consumer['channel_number'],
                     consumer_tag,
                     delivery_tag,
@@ -232,6 +233,7 @@ class State:
         queue_name,
         headers,
         message_data,
+        is_binary: bool = False,
     ):
         """Publish message to a worker without storing it."""
         if queue_name not in self._queues:
@@ -263,7 +265,7 @@ class State:
 
             consumer['protocol'].push_message(
                 headers,
-                message_data,
+                message_data.encode('utf8') if not is_binary else message_data,
                 consumer['channel_number'],
                 consumer_tag,
                 delivery_tag,

@@ -205,7 +205,8 @@ class HTTPProtocol(asyncio.protocols.Protocol):
         if has_octet_stream:
             return {
                 'body': data,
-                'headers': kept_headers
+                'headers': kept_headers,
+                'binary': True,
             }
         return json.loads(data.decode('utf-8'))
 
@@ -218,6 +219,7 @@ class HTTPProtocol(asyncio.protocols.Protocol):
                 exchange.decode('utf-8'),
                 full_message['headers'],
                 full_message['body'],
+                'binary' in full_message and full_message['binary'],
             )
             if delivery_tag is None:
                 self._send_http_response_not_found()
@@ -234,6 +236,7 @@ class HTTPProtocol(asyncio.protocols.Protocol):
                 queue.decode('utf-8'),
                 full_message['headers'],
                 full_message['body'],
+                'binary' in full_message and full_message['binary'],
             )
             if delivery_tag is None:
                 self._send_http_response_not_found()
