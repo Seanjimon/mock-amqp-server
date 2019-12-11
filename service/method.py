@@ -18,6 +18,8 @@ class MethodIDs(IntEnum):
     BASIC_CONSUME = 0x003C0014
     BASIC_ACK = 0x003C0050
 
+    BASIC_REJECT = 0x003c005a
+
     EXCHANGE_DECLARE = 0x0028000A
 
     QUEUE_DECLARE = 0x0032000A
@@ -294,6 +296,18 @@ def _decode_basic_ack(payload):
         'multiple': values[1],
     }
 
+def _decode_basic_reject(payload):
+
+    values, _ = loads(
+        'Lb',
+        payload,
+        offset=4,
+    )
+    return {
+        'delivery-tag': values[0],
+        'requeue': values[1],
+    }
+
 
 _ID_TO_METHOD = {
     0x000A000B: _decode_start_ok,
@@ -309,6 +323,7 @@ _ID_TO_METHOD = {
     MethodIDs.BASIC_CONSUME: _decode_basic_consume,
     MethodIDs.BASIC_ACK: _decode_basic_ack,
 
+    MethodIDs.BASIC_REJECT: _decode_basic_reject,
     0x0028000A: _decode_exchange_declare,
     MethodIDs.QUEUE_DECLARE: _decode_queue_declare,
     MethodIDs.QUEUE_BIND: _decode_queue_bind,
