@@ -20,6 +20,7 @@ from .sender import (
     send_basic_qos_ok,
     send_basic_consume_ok,
     send_basic_deliver,
+    send_basic_cancel_ok,
 )
 from .heartbeat import HeartBeat
 from .method import MethodIDs
@@ -40,6 +41,7 @@ class _ConnectionState(IntEnum):
     OPENED = 5
 
     WAITING_OTHER = 999
+
 
 class _ChannelState(IntEnum):
     WAITING_OPEN = 1
@@ -105,8 +107,7 @@ class TrackerProtocol(asyncio.protocols.Protocol):
                 # no more complete frame available
                 # => wait for next data
                 return
-            print("frame")
-            print(frame_value)
+            print("frame:", frame_value)
             self._buffer = self._buffer[frame_value.size:]
 
             if isinstance(frame_value, HeartBeat):
@@ -159,7 +160,6 @@ class TrackerProtocol(asyncio.protocols.Protocol):
                 self._parser_state = _ConnectionState.OPENED
                 continue
 
-
     def _check_protocol_header(self):
         if len(self._buffer) < len(PROTOCOL_HEADER):
             # underflow
@@ -180,7 +180,7 @@ class TrackerProtocol(asyncio.protocols.Protocol):
 
         # TODO: use callback to check username/password correctness
         if method.properties['mechanism'] == "PLAIN":
-            _ , username, password = method.properties['response'].split('\x00', 3)
+            _, username, password = method.properties['response'].split('\x00', 3)
 
         if method.properties['mechanism'] == "AMQPLAIN":
             _, _, username, _, _, password = loads(
@@ -332,7 +332,28 @@ class TrackerProtocol(asyncio.protocols.Protocol):
                     frame_value.properties['delivery-tag']
                 )
                 return
-            return
+
+            if frame_value.method_id == MethodIDs.BASIC_NACK:
+                self._global_state.message_nack(
+                    frame_value.properties['delivery-tag'],
+                    frame_value.properties['requeue'],
+                )
+                return
+
+            if frame_value.method_id == MethodIDs.BASIC_REJECT:
+                self._global_state.message_nack(
+                    frame_value.properties['delivery-tag'],
+                    frame_value.properties['requeue'],
+                )
+                return
+
+            if frame_value.method_id == MethodIDs.BASIC_CANCEL:
+                send_basic_cancel_ok(
+                    self.transport,
+                    channel_number,
+                    frame_value.properties['consumer-tag']
+                )
+                return
 
         if channel['state'] == _ChannelState.WAITING_HEADER:
             if not frame_value.is_header:
@@ -379,7 +400,7 @@ class TrackerProtocol(asyncio.protocols.Protocol):
             delivery_tag,
             False,  # redelivered
             exchange_name,
-            '', # routing key
+            '',  # routing key
         )
         send_content_header(
             self.transport,

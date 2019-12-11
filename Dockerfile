@@ -1,4 +1,4 @@
-FROM jfloff/alpine-python:recent-slim
+FROM jfloff/alpine-python:latest-slim
 
 # Copy required files
 COPY requirements.txt /requirements.txt
@@ -12,4 +12,4 @@ ENV HTTP_PORT=80
 
 EXPOSE 80
 EXPOSE 5672
-CMD ["python", "-m" , "service"]
+CMD ["python","-u", "-m" , "service"]
